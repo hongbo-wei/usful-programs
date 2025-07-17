@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Trading Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #e3f0ff 0%, #f7f9fb 100%);
+            font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+            color: #222;
+        }
+        .dashboard-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #2a7be4;
+            text-shadow: 0 2px 8px rgba(42,123,228,0.08);
+        }
+        .metric-card {
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(42,123,228,0.08);
+            background: #fff;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .metric-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 32px rgba(42,123,228,0.15);
+        }
+        .metric-label {
+            font-size: 1.1em;
+            color: #888;
+        }
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+        .pnl-pos { color: #388e3c; }
+        .pnl-neg { color: #d32f2f; }
+        .roi-pos { color: #388e3c; }
+        .roi-neg { color: #d32f2f; }
+        .table thead th {
+            background: #e3f0ff;
+            color: #2a7be4;
+            font-weight: 600;
+        }
+        .table tbody tr:hover {
+            background: #f0f7ff;
+        }
+        .form-select, .form-control {
+            border-radius: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #2a7be4 60%, #195ca7 100%);
+            border: none;
+            font-weight: 600;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(42,123,228,0.08);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(90deg, #195ca7 60%, #2a7be4 100%);
+        }
+        .section-title {
+            color: #195ca7;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-top: 2rem;
+        }
+        .alert-info, .alert-success, .alert-danger {
+            border-radius: 10px;
+        }
+        @media (max-width: 768px) {
+            .dashboard-title { font-size: 1.5rem; }
+            .metric-card { padding: 0.8rem 1rem; }
+            .metric-value { font-size: 1.1em; }
+        }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-3">
+        <i class="fa-solid fa-chart-line fa-2x me-2" style="color:#2a7be4;"></i>
+        <h1 class="dashboard-title mb-0">Trading Dashboard <span style="font-size:1.2rem;">🧑‍💻</span></h1>
+    </div>
+    <div class="row mb-3 g-3">
+        <div class="col-12 col-md-3">
+            <div class="metric-card text-center">
+                <div class="metric-label">初始资金</div>
+                <div class="metric-value"><i class="fa-solid fa-vault me-1"></i>${{ '{:,.2f}'.format(initial_fund) }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="metric-card text-center">
+                <div class="metric-label">现金余额</div>
+                <div class="metric-value"><i class="fa-solid fa-wallet me-1"></i>${{ '{:,.2f}'.format(cash_balance) }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="metric-card text-center">
+                <div class="metric-label">持仓市值</div>
+                <div class="metric-value"><i class="fa-solid fa-coins me-1"></i>${{ '{:,.2f}'.format(position_value) }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="metric-card text-center">
+                <div class="metric-label">总资产价值</div>
+                <div class="metric-value"><i class="fa-solid fa-sack-dollar me-1"></i>${{ '{:,.2f}'.format(total_asset_value) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-3 g-3">
+        <div class="col-12 col-md-6">
+            <div class="metric-card text-center">
+                <div class="metric-label">P&amp;L</div>
+                <div class="metric-value {{ 'pnl-neg' if pnl < 0 else 'pnl-pos' }}">
+                    <i class="fa-solid fa-arrow-trend-up me-1"></i>${{ '{:,.2f}'.format(pnl) }}
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6">
+            <div class="metric-card text-center">
+                <div class="metric-label">ROI</div>
+                <div class="metric-value {{ 'roi-neg' if pnl < 0 else 'roi-pos' }}">
+                    <i class="fa-solid fa-percent me-1"></i>{{ roi }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <hr>
+    <!-- Market Data -->
+    <div class="section-title"><i class="fa-solid fa-globe me-1"></i>Live Market Data</div>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover table-sm bg-white align-middle">
+            <thead><tr><th>Symbol</th><th>Price</th></tr></thead>
+            <tbody>
+            {% for row in market_rows %}
+                <tr>
+                    <td><span class="badge bg-primary bg-opacity-10 text-primary fw-bold">{{ row.Symbol }}</span></td>
+                    <td><span class="fw-semibold">{{ row.Price }}</span></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <hr>
+    <!-- Trade Form -->
+    <div class="section-title"><i class="fa-solid fa-right-left me-1"></i>交易操作</div>
+    <form method="post" action="/trade" class="row g-3 align-items-center mb-3">
+        <div class="col-auto">
+            <select name="symbol" class="form-select">
+                {% for s in symbols %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <select name="trade_type" class="form-select">
+                <option value="Buy">Buy</option>
+                <option value="Sell">Sell</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <input type="number" name="quantity" min="1" value="1" class="form-control" required>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">提交交易</button>
+        </div>
+    </form>
+    <!-- Show current price for selected symbol -->
+    <div id="current-price" class="mb-3 ps-2 fw-semibold text-primary"></div>
+    <script>
+    const marketData = {
+        {% for row in market_rows %}
+        '{{ row.Symbol }}': {{ row.Price|default('null') }},
+        {% endfor %}
+    };
+    const select = document.querySelector('select[name="symbol"]');
+    const priceDiv = document.getElementById('current-price');
+    function updatePrice() {
+        const symbol = select.value;
+        const price = marketData[symbol];
+        priceDiv.innerHTML = price !== null ? `<i class='fa-solid fa-tag'></i> 当前价格: <span class='fw-bold'>$${price}</span>` : '<i class="fa-solid fa-tag"></i> 当前价格: <span class="text-danger">暂无</span>';
+    }
+    select.addEventListener('change', updatePrice);
+    updatePrice();
+    </script>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <hr>
+    <!-- Position Details -->
+    <div class="section-title"><i class="fa-solid fa-boxes-stacked me-1"></i>持仓明细</div>
+    {% if position_rows %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover table-sm bg-white align-middle">
+            <thead><tr><th>Symbol</th><th>Buy Date</th><th>Buy Price</th><th>Current Price</th><th>Quantity</th><th>Market Value</th><th>P&L</th></tr></thead>
+            <tbody>
+            {% for row in position_rows %}
+                <tr>
+                    <td><span class="badge bg-primary bg-opacity-10 text-primary fw-bold">{{ row.Symbol }}</span></td>
+                    <td>{{ row['Buy Date'] }}</td>
+                    <td>{{ row['Buy Price'] }}</td>
+                    <td>{{ row['Current Price'] }}</td>
+                    <td>{{ row.Quantity }}</td>
+                    <td>{{ row['Market Value'] }}</td>
+                    <td class="{{ 'pnl-neg' if row['P&L'] < 0 else 'pnl-pos' }}">{{ row['P&L'] }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="alert alert-info">暂无持仓</div>
+    {% endif %}
+    <hr>
+    <!-- Recent Trades -->
+    <div class="section-title"><i class="fa-solid fa-clock-rotate-left me-1"></i>Recent Trades</div>
+    {% if trades %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover table-sm bg-white align-middle">
+            <thead><tr><th>ID</th><th>Symbol</th><th>Type</th><th>Quantity</th><th>Price</th><th>Timestamp</th></tr></thead>
+            <tbody>
+            {% for t in trades %}
+                <tr>
+                    <td>{{ t.id }}</td>
+                    <td><span class="badge bg-primary bg-opacity-10 text-primary fw-bold">{{ t.symbol }}</span></td>
+                    <td>{{ t.type }}</td>
+                    <td>{{ t.quantity }}</td>
+                    <td>{{ t.price }}</td>
+                    <td>{{ t.timestamp }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="alert alert-info">No trades yet.</div>
+    {% endif %}
+</div>
+</body>
+</html>
