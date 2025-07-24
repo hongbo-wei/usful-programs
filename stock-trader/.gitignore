@@ -6,3 +6,4 @@ trades.db
 .idea/
 .vscode/
 .DS_Store
+venv/

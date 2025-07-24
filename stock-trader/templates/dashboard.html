@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Trading Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="alternate icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
@@ -89,25 +91,25 @@
     <div class="row mb-3 g-3">
         <div class="col-12 col-md-3">
             <div class="metric-card text-center">
-                <div class="metric-label">初始资金</div>
+                <div class="metric-label">Initial Fund</div>
                 <div class="metric-value"><i class="fa-solid fa-vault me-1"></i>${{ '{:,.2f}'.format(initial_fund) }}</div>
             </div>
         </div>
         <div class="col-12 col-md-3">
             <div class="metric-card text-center">
-                <div class="metric-label">现金余额</div>
+                <div class="metric-label">Cash Balance</div>
                 <div class="metric-value"><i class="fa-solid fa-wallet me-1"></i>${{ '{:,.2f}'.format(cash_balance) }}</div>
             </div>
         </div>
         <div class="col-12 col-md-3">
             <div class="metric-card text-center">
-                <div class="metric-label">持仓市值</div>
+                <div class="metric-label">Position Value</div>
                 <div class="metric-value"><i class="fa-solid fa-coins me-1"></i>${{ '{:,.2f}'.format(position_value) }}</div>
             </div>
         </div>
         <div class="col-12 col-md-3">
             <div class="metric-card text-center">
-                <div class="metric-label">总资产价值</div>
+                <div class="metric-label">Total Asset Value</div>
                 <div class="metric-value"><i class="fa-solid fa-sack-dollar me-1"></i>${{ '{:,.2f}'.format(total_asset_value) }}</div>
             </div>
         </div>
@@ -131,6 +133,36 @@
         </div>
     </div>
     <hr>
+    <!-- Chart Display -->
+    <div class="row mb-3 g-3">
+        <div class="col-12 col-md-7">
+            <div class="metric-card">
+                <div class="metric-label">Stock & Crypto Buy vs Market Value</div>
+                {% if asset_bar_chart %}
+                <img src="data:image/png;base64,{{ asset_bar_chart }}" class="img-fluid" alt="Asset Bar Chart">
+                <div class="mt-2" style="font-size:0.98em;">
+                    <span class="me-3"><b>Stock:</b> Market/Buy = 
+                        {% if stock_buy and stock_market %}
+                            {{ '%.2f' % (stock_market / stock_buy * 100) if stock_buy else '0.00' }}%
+                        {% else %}N/A{% endif %}
+                    </span>
+                    <span><b>Crypto:</b> Market/Buy = 
+                        {% if crypto_buy and crypto_market %}
+                            {{ '%.2f' % (crypto_market / crypto_buy * 100) if crypto_buy else '0.00' }}%
+                        {% else %}N/A{% endif %}
+                    </span>
+                </div>
+                {% else %}<div class="text-muted">No data</div>{% endif %}
+            </div>
+        </div>
+        <div class="col-12 col-md-5">
+            <div class="metric-card d-flex flex-column align-items-center justify-content-center" style="height:100%; min-height:350px;">
+                {% if position_pie_chart %}
+                <img src="data:image/png;base64,{{ position_pie_chart }}" class="img-fluid" alt="Position Pie Chart" style="max-width:95%; max-height:320px;">
+                {% else %}<div class="text-muted">No data</div>{% endif %}
+            </div>
+        </div>
+    </div>
     <!-- Market Data -->
     <div class="section-title"><i class="fa-solid fa-globe me-1"></i>Live Market Data</div>
     <div class="table-responsive">
@@ -148,8 +180,10 @@
     </div>
     <hr>
     <!-- Trade Form -->
-    <div class="section-title"><i class="fa-solid fa-right-left me-1"></i>交易操作</div>
+    <div class="section-title"><i class="fa-solid fa-right-left me-1"></i>Trade Operation</div>
     <form method="post" action="/trade" class="row g-3 align-items-center mb-3">
+        {# CSRF token 只应作为隐藏字段插入，不应被误渲染为文本 #}
+        {{ csrf_token()|safe }}
         <div class="col-auto">
             <select name="symbol" class="form-select">
                 {% for s in symbols %}
@@ -167,7 +201,7 @@
             <input type="number" name="quantity" min="1" value="1" class="form-control" required>
         </div>
         <div class="col-auto">
-            <button type="submit" class="btn btn-primary">提交交易</button>
+            <button type="submit" class="btn btn-primary">Submit Trade</button>
         </div>
     </form>
     <!-- Show current price for selected symbol -->
@@ -183,7 +217,7 @@
     function updatePrice() {
         const symbol = select.value;
         const price = marketData[symbol];
-        priceDiv.innerHTML = price !== null ? `<i class='fa-solid fa-tag'></i> 当前价格: <span class='fw-bold'>$${price}</span>` : '<i class="fa-solid fa-tag"></i> 当前价格: <span class="text-danger">暂无</span>';
+        priceDiv.innerHTML = price !== null ? `<i class='fa-solid fa-tag'></i> Current Price: <span class='fw-bold'>$${price}</span>` : '<i class="fa-solid fa-tag"></i> Current Price: <span class="text-danger">N/A</span>';
     }
     select.addEventListener('change', updatePrice);
     updatePrice();
@@ -197,7 +231,7 @@
     {% endwith %}
     <hr>
     <!-- Position Details -->
-    <div class="section-title"><i class="fa-solid fa-boxes-stacked me-1"></i>持仓明细</div>
+    <div class="section-title"><i class="fa-solid fa-boxes-stacked me-1"></i>Position Details</div>
     {% if position_rows %}
     <div class="table-responsive">
         <table class="table table-bordered table-hover table-sm bg-white align-middle">
@@ -218,7 +252,7 @@
         </table>
     </div>
     {% else %}
-        <div class="alert alert-info">暂无持仓</div>
+        <div class="alert alert-info">No position.</div>
     {% endif %}
     <hr>
     <!-- Recent Trades -->
