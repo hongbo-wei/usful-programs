@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/hongbo_wei/Downloads/GitHub/usful-programs/hello_world'
+relocations:     []
+...

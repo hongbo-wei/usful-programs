@@ -1,0 +1,71 @@
+body {
+    background: linear-gradient(135deg, #e3f0ff 0%, #f7f9fb 100%);
+    font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+    color: #222;
+}
+.dashboard-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #2a7be4;
+    text-shadow: 0 2px 8px rgba(42,123,228,0.08);
+}
+.metric-card {
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(42,123,228,0.08);
+    background: #fff;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1rem;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.metric-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 8px 32px rgba(42,123,228,0.15);
+}
+.metric-label {
+    font-size: 1.1em;
+    color: #888;
+}
+.metric-value {
+    font-size: 1.5em;
+    font-weight: 600;
+}
+.pnl-pos { color: #388e3c; }
+.pnl-neg { color: #d32f2f; }
+.roi-pos { color: #388e3c; }
+.roi-neg { color: #d32f2f; }
+.table thead th {
+    background: #e3f0ff;
+    color: #2a7be4;
+    font-weight: 600;
+}
+.table tbody tr:hover {
+    background: #f0f7ff;
+}
+.form-select, .form-control {
+    border-radius: 8px;
+}
+.btn-primary {
+    background: linear-gradient(90deg, #2a7be4 60%, #195ca7 100%);
+    border: none;
+    font-weight: 600;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(42,123,228,0.08);
+}
+.btn-primary:hover {
+    background: linear-gradient(90deg, #195ca7 60%, #2a7be4 100%);
+}
+.section-title {
+    color: #195ca7;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-top: 2rem;
+}
+.alert-info, .alert-success, .alert-danger {
+    border-radius: 10px;
+}
+@media (max-width: 768px) {
+    .dashboard-title { font-size: 1.5rem; }
+    .metric-card { padding: 0.8rem 1rem; }
+    .metric-value { font-size: 1.1em; }
+}

@@ -77,9 +77,8 @@ def get_trades() -> List[Trade]:
         logger.error("[DB] Failed to fetch trades: %s", e)
         return []
 
-from stock_trader.config import DB_PATH
 
-DEFAULT_INITIAL_FUND = 1_000_000_000  # Move magic number to a constant
+from stock_trader.config import DB_PATH, DEFAULT_INITIAL_FUND
 
 def calculate_positions_and_pnl(trades: list, initial_fund: float = DEFAULT_INITIAL_FUND):
     """
@@ -146,3 +145,13 @@ def calculate_positions_and_pnl(trades: list, initial_fund: float = DEFAULT_INIT
     roi = (pnl / initial_fund) * 100 if initial_fund else 0.0
     roi_str = f"{roi:.4f}%"
     return position_rows, cash_balance, position_value, total_asset_value, pnl, roi_str
+
+def execute_trade(symbol: str, trade_type: str, quantity: int, price: float = None) -> None:
+    """
+    执行一笔模拟交易，自动补充当前价格（如未指定），并写入数据库。
+    """
+    if price is None:
+        # 这里可集成实时价格获取逻辑
+        from stock_trader.data import get_stock_price
+        price = get_stock_price(symbol)
+    record_trade(symbol, trade_type, quantity, price)

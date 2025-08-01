@@ -8,79 +8,7 @@
     <link rel="alternate icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #e3f0ff 0%, #f7f9fb 100%);
-            font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
-            color: #222;
-        }
-        .dashboard-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: #2a7be4;
-            text-shadow: 0 2px 8px rgba(42,123,228,0.08);
-        }
-        .metric-card {
-            border-radius: 18px;
-            box-shadow: 0 4px 24px rgba(42,123,228,0.08);
-            background: #fff;
-            padding: 1.2rem 1.5rem;
-            margin-bottom: 1rem;
-            transition: transform 0.15s, box-shadow 0.15s;
-        }
-        .metric-card:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 8px 32px rgba(42,123,228,0.15);
-        }
-        .metric-label {
-            font-size: 1.1em;
-            color: #888;
-        }
-        .metric-value {
-            font-size: 1.5em;
-            font-weight: 600;
-        }
-        .pnl-pos { color: #388e3c; }
-        .pnl-neg { color: #d32f2f; }
-        .roi-pos { color: #388e3c; }
-        .roi-neg { color: #d32f2f; }
-        .table thead th {
-            background: #e3f0ff;
-            color: #2a7be4;
-            font-weight: 600;
-        }
-        .table tbody tr:hover {
-            background: #f0f7ff;
-        }
-        .form-select, .form-control {
-            border-radius: 8px;
-        }
-        .btn-primary {
-            background: linear-gradient(90deg, #2a7be4 60%, #195ca7 100%);
-            border: none;
-            font-weight: 600;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(42,123,228,0.08);
-        }
-        .btn-primary:hover {
-            background: linear-gradient(90deg, #195ca7 60%, #2a7be4 100%);
-        }
-        .section-title {
-            color: #195ca7;
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-top: 2rem;
-        }
-        .alert-info, .alert-success, .alert-danger {
-            border-radius: 10px;
-        }
-        @media (max-width: 768px) {
-            .dashboard-title { font-size: 1.5rem; }
-            .metric-card { padding: 0.8rem 1rem; }
-            .metric-value { font-size: 1.1em; }
-        }
-    </style>
+    <link rel="stylesheet" href="/static/dashboard.css">
 </head>
 <body>
 <div class="container py-4">
@@ -183,7 +111,8 @@
     <div class="section-title"><i class="fa-solid fa-right-left me-1"></i>Trade Operation</div>
     <form method="post" action="/trade" class="row g-3 align-items-center mb-3">
         {# CSRF token 只应作为隐藏字段插入，不应被误渲染为文本 #}
-        {{ csrf_token()|safe }}
+        <!-- CSRF hidden field，必须放在表单input区域内 -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() | safe }}">
         <div class="col-auto">
             <select name="symbol" class="form-select">
                 {% for s in symbols %}
@@ -204,24 +133,40 @@
             <button type="submit" class="btn btn-primary">Submit Trade</button>
         </div>
     </form>
+
+    <!-- 智能分析自动展示入口 -->
+    <div class="row mb-3 g-3">
+        <div class="col-12">
+            {% if llm_answer %}
+                <div class="alert alert-info mb-2"><b>智能体建议：</b>{{ llm_answer }}</div>
+                <button id="llm-analysis-btn" class="btn btn-info btn-sm ms-2">智能分析</button>
+                <span id="llm-analysis-loading" style="display:none;">分析中...</span>
+                <div id="llm-analysis-result" class="alert alert-info mt-2" style="display:none;"></div>
+                <form method="post" action="/auto_trade" style="display:inline;">
+                    <input type="hidden" name="llm_answer" value="{{ llm_answer }}">
+                    <button type="submit" class="btn btn-warning btn-sm ms-2">智能交易</button>
+                </form>
+                {% if auto_trade_result %}
+                  <div class="alert alert-success mt-2">{{ auto_trade_result }}</div>
+                {% endif %}
+            {% else %}
+                <button id="llm-analysis-btn" class="btn btn-info btn-sm">智能分析</button>
+                <span id="llm-analysis-loading" style="display:none;">分析中...</span>
+                <div id="llm-analysis-result" class="alert alert-info mt-2" style="display:none;"></div>
+            {% endif %}
+        </div>
+    </div>
     <!-- Show current price for selected symbol -->
     <div id="current-price" class="mb-3 ps-2 fw-semibold text-primary"></div>
     <script>
-    const marketData = {
+      // Pass market_rows to JS as a global variable for dashboard.js
+      window.marketRows = {
         {% for row in market_rows %}
         '{{ row.Symbol }}': {{ row.Price|default('null') }},
         {% endfor %}
-    };
-    const select = document.querySelector('select[name="symbol"]');
-    const priceDiv = document.getElementById('current-price');
-    function updatePrice() {
-        const symbol = select.value;
-        const price = marketData[symbol];
-        priceDiv.innerHTML = price !== null ? `<i class='fa-solid fa-tag'></i> Current Price: <span class='fw-bold'>$${price}</span>` : '<i class="fa-solid fa-tag"></i> Current Price: <span class="text-danger">N/A</span>';
-    }
-    select.addEventListener('change', updatePrice);
-    updatePrice();
+      };
     </script>
+    <script src="/static/dashboard.js"></script>
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -278,6 +223,16 @@
     {% else %}
         <div class="alert alert-info">No trades yet.</div>
     {% endif %}
+    <hr>
+    <!-- 操作日志展示 -->
+    <div class="section-title"><i class="fa-solid fa-file-lines me-1"></i>操作日志</div>
+    <div class="bg-light p-2 mb-4" style="max-height:300px;overflow:auto;font-size:0.95em;">
+        {% if logs %}
+            <pre style="white-space:pre-wrap;word-break:break-all;">{% for line in logs %}{{ line }}{% endfor %}</pre>
+        {% else %}
+            <div class="text-muted">暂无日志</div>
+        {% endif %}
+    </div>
 </div>
 </body>
 </html>
